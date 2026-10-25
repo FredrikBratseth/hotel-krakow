@@ -90,6 +90,11 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 #whistle[disabled]{border-color:var(--line);color:#d8b0b0}
 #sprint{--st:1;border:3px solid #5fb0ff;background:linear-gradient(to top,#2a6fc0 calc(var(--st)*100%),#1a2234 0)}
 .col{display:flex;flex-direction:column;align-items:center;gap:8px}
+#menu{background:none;border:2px solid var(--amber);color:var(--amber);font-family:var(--pixel);font-size:7px;padding:5px 7px;cursor:pointer;margin-bottom:6px}
+#menuBox{position:fixed;inset:0;z-index:50;background:rgba(5,4,12,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+#menuBox[hidden]{display:none}
+#menuBox .mb{background:var(--panel);border:3px solid var(--amber);padding:18px 16px;display:flex;flex-direction:column;gap:10px;width:min(320px,100%)}
+#menuBox h2{font-family:var(--pixel);font-size:11px;color:var(--amber);margin:0 0 4px;text-align:center}
 #mute{background:none;border:2px solid var(--line);color:var(--dim);font-family:var(--pixel);font-size:7px;padding:5px 7px;cursor:pointer}
 .nick{display:flex;flex-direction:column;gap:5px;text-align:left}
 .nick span{font-family:var(--pixel);font-size:8px;color:var(--dim);letter-spacing:.1em}
@@ -155,6 +160,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <button class="rb" id="sprint" aria-label="Spurt">SPURT</button>
       <div class="col">
         <button class="rb" id="whistle" aria-label="Blås i fløyta">FLØYTE</button>
+        <button id="menu" hidden>☰ MENY</button>
         <button id="mute">LYD PÅ</button>
       </div>
     </div>
@@ -622,7 +628,7 @@ function hostStart(){
   if(T==='rot'){const all=[...pl.map(p=>p.peer),...(HS.nbots>0?['botT']:[])];let c=all.filter(id=>!HS.rotDone.includes(id));if(!c.length){HS.rotDone=[];c=all}T=c[0]||null;if(T)HS.rotDone.push(T)}
   else if(T!=='botT'&&(!T||!pl.find(p=>p.peer===T)))T=pl.length?pl[Math.floor(Math.random()*pl.length)].peer:null;
   {const nS=pl.filter(p=>p.peer!==T).length+HS.nbots;HS.dur=HS.durSel||(nS<8?150:nS<16?180:210)}
-  Object.assign(HS,{hits:{},slot:{},chg:{},letter:{},safe:{},locks:[],sensors:[],useSeen:{},cart:{x:6.5,y:5.5,wi:1,hz:true},nextGadget:25,gcycle:0,letterDone:0,letterAt:40+Math.random()*30,lastT:0,tcycle:0,darkAt:HS.dur*.55,minDone:0,bd:[],vel:{},pp:{},camp:{},bed:{},ph:HS.intro?'intro':'play',introEnd:nowS()+(HS.tour&&HS.tour.cur>0?3.3:INTRO),r:HS.r+1,T,startAt:nowS()+(HS.intro?(HS.tour&&HS.tour.cur>0?3.3:INTRO):0),items:[],out:{},sc:{},role:{},catches:0,tgt:{},ammo:0,ls:0,proc:{},darts:[],win:null,lastNerf:0,bots:[]});
+  Object.assign(HS,{forceEnd:0,hits:{},slot:{},chg:{},letter:{},safe:{},locks:[],sensors:[],useSeen:{},cart:{x:6.5,y:5.5,wi:1,hz:true},nextGadget:25,gcycle:0,letterDone:0,letterAt:40+Math.random()*30,lastT:0,tcycle:0,darkAt:HS.dur*.55,minDone:0,bd:[],vel:{},pp:{},camp:{},bed:{},ph:HS.intro?'intro':'play',introEnd:nowS()+(HS.tour&&HS.tour.cur>0?3.3:INTRO),r:HS.r+1,T,startAt:nowS()+(HS.intro?(HS.tour&&HS.tour.cur>0?3.3:INTRO):0),items:[],out:{},sc:{},role:{},catches:0,tgt:{},ammo:0,ls:0,proc:{},darts:[],win:null,lastNerf:0,bots:[]});
   if(T==='botT'){HS.T='botT';HS.nk.botT='Bot-lærer';HS.sc.botT=0;HS.role.botT='t';HS.bt={fx:20,fy:15,tx:20,ty:15,p:0,dir:'down',ang:Math.PI/2,f:0,walk:0,lonely:0}}else HS.bt=null;
   for(const p of pl){HS.nk[p.peer]=p.nick;HS.sc[p.peer]=0;HS.role[p.peer]=p.peer===T?'t':'s'}
   HS.perCatch=Math.max(20,Math.round(500/Math.max(1,pl.filter(p=>p.peer!==T).length+HS.nbots)));
@@ -753,7 +759,7 @@ function hostTick(dt){
       if(HS.camp[s.id]<10)HS.sc[s.id]=(HS.sc[s.id]||0)+dt*(.3+1.2*Math.min(1,t/HS.dur))}
     const mDone=Math.floor(t/60);if(mDone>(HS.minDone||0)){HS.minDone=mDone;for(const s2 of alive)HS.sc[s2.id]=(HS.sc[s2.id]||0)+20*mDone}
     const total=Object.keys(HS.role).filter(k=>HS.role[k]==='s').length,still=studs.filter(s=>!HS.out[s.id]);
-    if(left<=0||(total>0&&!still.length)){HS.ph='end';for(const s of still)HS.sc[s.id]+=150;HS.win=still.length?'s':'t';if(!still.length&&HS.T){HS.winB=100+Math.round(Math.max(0,left));HS.sc[HS.T]=(HS.sc[HS.T]||0)+HS.winB}else HS.winB=0;HS.left=Math.max(0,left);
+    if(left<=0||HS.forceEnd||(total>0&&!still.length)){HS.forceEnd=0;HS.ph='end';for(const s of still)HS.sc[s.id]+=150;HS.win=still.length?'s':'t';if(!still.length&&HS.T){HS.winB=100+Math.round(Math.max(0,left));HS.sc[HS.T]=(HS.sc[HS.T]||0)+HS.winB}else HS.winB=0;HS.left=Math.max(0,left);
       if(HS.tour){const TT=HS.tour,rk=Object.keys(TT.tot).sort((a,b)=>TT.tot[b].t-TT.tot[a].t);rk.forEach((id,i)=>TT.tot[id].prev=i);
         for(const id of Object.keys(HS.sc)){const e=TT.tot[id]||(TT.tot[id]={nk:HS.nk[id]||'?',t:0,prev:-1,tch:0});e.nk=HS.nk[id]||e.nk;const v=Math.floor(HS.sc[id]);e.t+=v;e.last=v;e.wasT=HS.role[id]==='t';if(e.wasT)e.tch++}
         for(const id of Object.keys(TT.tot))if(HS.sc[id]===undefined)TT.tot[id].last=0;TT.cur++}
@@ -1246,7 +1252,7 @@ function showEnd(H){if(endShown===H.r)return;endShown=H.r;overlay.hidden=false;
   ${T?`<div class="tabs"><button class="tab on" id="tabTot">${fin?'RESULTAT':'SAMMENLAGT'}</button><button class="tab" id="tabRnd">DENNE RUNDEN</button></div><div id="endBody">${standingsHTML(T.tb,fin)}</div>`
    :`<ol class="board">${st.slice(0,12).map((s,i)=>`<li class="${s[0]===myPeer?'me':''}"><span>${i+1}</span><span>${esc(s[1])}${isOut(H,s[0])?' <small>tatt</small>':' <small>klarte seg</small>'}</span><span>${s[2]}</span></li>`).join('')}</ol>`}
   ${isHost?(T&&!fin?`<button class="btn" id="again">NESTE RUNDE (${T.c+1} AV ${T.n})</button><button class="btn alt" id="lob">TILBAKE TIL LOBBY</button>`:`<button class="btn" id="again">${T?'NY TURNERING':'NY RUNDE'}</button><button class="btn alt" id="lob">TILBAKE TIL LOBBY</button>`)+'<button class="btn alt" id="quit">AVSLUTT</button>'
-   :`<p class="note">${T&&!fin?`Venter på at verten starter runde ${T.c+1}…`:'Venter på verten…'}</p><button class="btn alt" id="quit">FORLAT SPILLET</button>`}</div>`;
+   :`<p class="note">${T&&!fin?`Venter på at verten starter runde ${T.c+1}…`:'Venter på verten…'}</p><button class="btn alt" id="quit">TILBAKE TIL STARTSIDEN</button>`}</div>`;
   if(T){const roundTb=(H.sc||[]).slice().sort((a,b)=>b[2]-a[2]).map(e=>[e[0],e[1],e[2],e[2],-2,e[3]==='t'?1:0]);
     $('tabTot').onclick=()=>{$('endBody').innerHTML=standingsHTML(T.tb,fin);$('tabTot').classList.add('on');$('tabRnd').classList.remove('on')};
     $('tabRnd').onclick=()=>{$('endBody').innerHTML=`<ol class="board">${roundTb.slice(0,14).map((e,i)=>`<li class="${e[0]===myPeer?'me':''}"><span>${i+1}</span><span>${esc(e[1])}${e[5]?' <small>(lærer)</small>':isOut(H,e[0])?' <small>tatt</small>':''}</span><span>${e[2]}</span></li>`).join('')}</ol>`;$('tabRnd').classList.add('on');$('tabTot').classList.remove('on')}}
@@ -1298,6 +1304,22 @@ function bindStick(el,knob,floating){let id=null,ox=0,oy=0;const R=()=>floating?
 bindStick($('stick'),$('knob'),false);bindStick(stage,document.querySelector('#fstick i'),true);
 spb.addEventListener('pointerdown',e=>{e.preventDefault();useItem()});
 $('whistle').addEventListener('pointerdown',e=>{e.preventDefault();doAct()});
+{const bn=$('banner'),d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');Object.defineProperty(bn,'innerHTML',{get(){return d.get.call(this)},set(v){if(this.__h===v)return;this.__h=v;d.set.call(this,v)}})}
+function hostToLobby(){if(!HS)return;HS.tour=null;HS.rotDone=[];HS.ph='lobby';HS.out={};HS.items=[];HS.bots=[];HS.T=null;HS.forceEnd=0;HS.pub=buildPub();ui='lobby';closeMenu();showHostLobby();spawnSelf({ph:'lobby'})}
+function leaveGame(){closeMenu();if(nroom)nroom.leave().catch(()=>{});nroom=null;isHost=false;HS=null;code='';spectator=false;hostPlays=true;roundSeen=-1;seenEv=-1;showIntro()}
+let menuBox=null;function closeMenu(){if(menuBox)menuBox.hidden=true}
+function openMenu(){blurAll&&blurAll();if(!menuBox){menuBox=document.createElement('div');menuBox.id='menuBox';document.body.appendChild(menuBox);menuBox.onclick=e=>{if(e.target===menuBox)closeMenu()}}
+  const ph=HS?HS.ph:(lastH&&lastH.ph);let h='<div class="mb"><h2>MENY</h2>';
+  if(isHost){if(ph==='play')h+='<button class="btn" id="mEnd">AVSLUTT RUNDEN NÅ</button>';if(ph!=='lobby')h+='<button class="btn alt" id="mLob">TILBAKE TIL LOBBY</button>';h+='<button class="btn alt" id="mQuit">TILBAKE TIL STARTSIDEN</button>'}
+  else h+='<button class="btn" id="mQuit">TILBAKE TIL STARTSIDEN</button>';
+  h+='<button class="btn alt" id="mBack">FORTSETT</button></div>';menuBox.innerHTML=h;menuBox.hidden=false;
+  const b=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f};
+  b('mEnd',()=>{if(HS&&HS.ph==='play')HS.forceEnd=1;closeMenu()});b('mLob',hostToLobby);b('mBack',closeMenu);
+  b('mQuit',()=>{if(isHost&&nroom&&!confirmQuit){confirmQuit=1;const e=document.getElementById('mQuit');e.textContent='TRYKK IGJEN: SPILLET AVSLUTTES FOR ALLE';setTimeout(()=>{confirmQuit=0},3000);return}confirmQuit=0;leaveGame()})}
+let confirmQuit=0;
+$('menu').onclick=openMenu;
+setInterval(()=>{$('menu').hidden=ui==='intro'},300);
+try{const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),100)'],{type:'text/javascript'})));wk.onmessage=()=>{if(!document.hidden)return;const n=performance.now();if(n-last<90)return;const dt=Math.min(.12,(n-last)/1000);last=n;if(ui!=='intro'){if(isHost&&HS)hostTick(dt);clientTick(dt)}}}catch(e){}
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'LYD AV':'LYD PÅ'};
 document.addEventListener('visibilitychange',()=>{last=performance.now();joy.active=false;joy.x=joy.y=0;keys.clear();sprinting=false});
 
