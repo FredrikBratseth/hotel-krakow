@@ -18,7 +18,9 @@ const srv = http.createServer((req, res) => {
   });
 });
 
-const wss = new WebSocketServer({ server: srv, path: '/ws', maxPayload: 512 * 1024 });
+// Compression: game state is JSON and very repetitive, so this cuts data traffic ~50x (Render's free plan only includes 5 GB/month)
+const wss = new WebSocketServer({ server: srv, path: '/ws', maxPayload: 512 * 1024,
+  perMessageDeflate: { threshold: 128, zlibDeflateOptions: { level: 4 }, clientNoContextTakeover: true } });
 const rooms = new Map(); // navn -> { peers: Map(id -> {ws, pres, dirty}), gone: [] }
 let seq = 0;
 const newId = () => Math.random().toString(36).slice(2, 9) + (++seq).toString(36);
@@ -48,7 +50,7 @@ wss.on('connection', ws => {
   });
 });
 
-// ~15 ganger i sekundet: send endringer til alle i rommet
+// ~10 ganger i sekundet: send endringer til alle i rommet
 setInterval(() => {
   for (const r of rooms.values()) {
     const u = [];
@@ -57,7 +59,7 @@ setInterval(() => {
     const msg = JSON.stringify({ t: 'd', u, g: r.gone }); r.gone = [];
     for (const v of r.peers.values()) if (v.ws.readyState === 1 && v.ws.bufferedAmount < 2e6) v.ws.send(msg);
   }
-}, 66);
+}, 100);
 
 // fjern døde tilkoblinger
 setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 15000);
